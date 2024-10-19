@@ -41,7 +41,7 @@ def load_dataset(dataset_path):
 
 def main():
     # Hardcoded dataset path
-    dataset_path = '/Users/main/Downloads/archive/train'  # Replace this with your actual dataset path
+    dataset_path = '  '  # Replace this with your actual dataset path
     
     # Load dataset
     print("Loading dataset...")
