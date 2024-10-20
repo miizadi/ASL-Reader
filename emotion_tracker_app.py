@@ -44,9 +44,22 @@ class EmotionTrackerApp:
         ret, frame = self.vid.read()
         if ret:
             self.process_frame(frame)
+
+            # Calculate the dimensions of the canvas and the frame
+            canvas_width, canvas_height = self.canvas.winfo_width(), self.canvas.winfo_height()
+            frame_width, frame_height = frame.shape[1], frame.shape[0]
+
+            # Calculate the x and y coordinates to center the image
+            x = (canvas_width - frame_width) // 2
+            y = (canvas_height - frame_height) // 2
+
+            # Create the PhotoImage object
             self.photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
-            self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
-        self.window.after(self.delay, self.update)
+
+            # Display the image on the canvas at the calculated position
+            self.canvas.create_image(x, y, image=self.photo, anchor=tk.NW)
+
+            self.window.after(self.delay, self.update)
 
     def process_frame(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
