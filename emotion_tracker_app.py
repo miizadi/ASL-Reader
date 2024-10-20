@@ -6,6 +6,45 @@ import numpy as np
 from tensorflow.keras.models import load_model
 import subprocess
 import requests
+import os
+import google.generativeai as genai
+
+genai.configure(api_key=os.environ["API_KEY"])
+
+# Create the model
+generation_config = {
+  "temperature": 2,
+  "top_p": 0.95,
+  "top_k": 64,
+  "max_output_tokens": 50,
+  "response_mime_type": "text/plain",
+}
+
+model = genai.GenerativeModel(
+  model_name="gemini-1.5-flash",
+  generation_config=generation_config,
+)
+
+chat_session = model.start_chat(
+  history=[
+    {
+      "role": "user",
+      "parts": [
+        "give a bunch of one liners that will calm the reader down in the ultimate attempt of them to not get angry and angrier",
+      ],
+    },
+    {
+      "role": "model",
+      "parts": [
+        "## One-Liners to Calm the Reader's Rage:\n\n**General:**\n\n* Breathe. It's just a moment. \n* This too shall pass.\n* Let it go. It's not worth the anger.\n*  Is this really worth your energy? \n*  Focus on what you can control.\n*  There's always a better way to respond.\n\n**For specific situations:**\n\n* **Traffic Jam:** Patience, my friend.  Everyone is in the same boat.\n* **Rude Person:** Their behavior reflects more on them than you. \n* **Missed Opportunity:**  There are always more chances. \n* **Disappointment:** Don't let it define your day. \n* **Stressful Work:** You're doing great. Take a break.\n* **Arguments:**  Listen to understand, not to reply.\n\n**Humorous:**\n\n*  Is anger getting the best of you?  Maybe you should try a nap.\n*  You're not the only one who's ever been angry.  You're in good company!\n*  Take a deep breath and count to ten... in binary. \n*  Remember, a little anger can be good for the immune system. \n*  Rage is just another way to say \"I'm feeling overwhelmed.\"\n\n**Philosophical:**\n\n*  Anger is like a fire.  Don't let it consume you.\n*  The only thing that conquers anger is love. \n*  Let go of the need to be right. \n*  Peace starts within. \n\n**Remember, calming down takes time.  These one-liners are meant to be a starting point.  Take a moment, breathe, and choose your response wisely.** \n",
+      ],
+    },
+  ]
+)
+
+def getresponse():
+  response = chat_session.send_message("Give a calming one-liner. No quotes or punctuation.")
+  return response.text
 
 # Reference to the existing face detection and emotion recognition code
 # main.py
@@ -113,9 +152,7 @@ class EmotionTrackerApp:
         subprocess.run(["osascript", "-e", f'display notification "{calming_message}" with title "Emotion Alert"'])
 
     def get_calming_message(self):
-        # Implement Gemini AI API call here to get a calming message
-        # For now, we'll use a placeholder
-        return "Take a deep breath and relax. Everything will be okay."
+        return getresponse()
 
     def quit(self):
         self.window.quit()
