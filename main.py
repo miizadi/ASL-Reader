@@ -1,46 +1,60 @@
-import mediapipe as mp
 import cv2
+import numpy as np
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
 
-# Initialize MediaPipe face mesh
-mp_drawing = mp.solutions.drawing_utils
-mp_face_mesh = mp.solutions.face_mesh
+# Load the trained model
+model_best = load_model('face_model.h5') # set your machine model file path here
 
-# Create a face mesh object
-with mp_face_mesh.FaceMesh(
-    static_image_mode=False,
-    max_num_faces=1,
-    refine_landmarks=True,
-    min_detection_confidence=0.5,
-) as face_mesh:
+# Classes 7 emotional states
+class_names = ['Angry', 'Disgusted', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 
-    # Capture video from your webcam
-    cap = cv2.VideoCapture(0)
+# Load the pre-trained face cascade
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-    while cap.isOpened():
-        success, image = cap.read()
+# Open a connection to the webcam (0 is usually the default camera)
+cap = cv2.VideoCapture(0)
 
-        # Convert BGR image to RGB
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+while True:
+    # Capture frame-by-frame
+    ret, frame = cap.read()
 
-        # Process the image
-        results = face_mesh.process(image)
+    # Convert the frame to grayscale for face detection
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Draw the detected face mesh
-        if results.multi_face_landmarks:
-            for face_landmarks in results.multi_face_landmarks:
-                mp_drawing.draw_landmarks(
-                    image,
-                    face_landmarks,
-                    mp_face_mesh.FACEMESH_CONTOURS,
-                    mp_drawing.DrawingSpec(thickness=1, circle_radius=1),
-                    mp_drawing.DrawingSpec(thickness=1),
-                )
+    # Detect faces in the frame
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
 
-        # Display the image
-        cv2.imshow('Face Mesh', image)
+    # Process each detected face
+    for (x, y, w, h) in faces:
+        # Extract the face region
+        face_roi = frame[y:y + h, x:x + w]
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # Resize the face image to the required input size for the model
+        face_image = cv2.resize(face_roi, (48, 48))
+        face_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)
+        face_image = image.img_to_array(face_image)
+        face_image = np.expand_dims(face_image, axis=0)
+        face_image = np.vstack([face_image])
 
-    cap.release()
-    cv2.destroyAllWindows()
+        # Predict emotion using the loaded model
+        predictions = model_best.predict(face_image)
+        emotion_label = class_names[np.argmax(predictions)]
+
+        # Display the emotion label on the frame
+        cv2.putText(frame, f'Emotion: {emotion_label}', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.9, (0, 0, 255), 2)
+
+        # Draw a rectangle around the face
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+    # Display the resulting frame
+    cv2.imshow('Emotion Detection', frame)
+
+    # Break the loop if 'q' key is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release the webcam and close the window
+cap.release()
+cv2.destroyAllWindows()
